@@ -9,27 +9,33 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.menzago.data.mock.MockData
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.menzago.ui.components.CanteenCard
 import com.example.menzago.ui.components.DishCard
 import com.example.menzago.ui.components.EmptyStateView
 import com.example.menzago.ui.components.MenzaGoTopBar
+import com.example.menzago.ui.viewmodel.FavoritesViewModel
 
 @Composable
 fun FavoritesScreen(
     onOpenDish: (Int) -> Unit,
-    onOpenCanteen: (Int) -> Unit
+    onOpenCanteen: (Int) -> Unit,
+    viewModel: FavoritesViewModel = viewModel()
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    val uiState by viewModel.uiState.collectAsState()
 
-    val favoriteDishes = MockData.dishes.filter { it.isFavorite }
-    val favoriteCanteens = MockData.canteens.filter { it.isFavorite }
+    LaunchedEffect(Unit) {
+        viewModel.refreshFavorites()
+    }
 
     LazyColumn(
         modifier = Modifier.padding(horizontal = 16.dp),
@@ -47,6 +53,7 @@ fun FavoritesScreen(
                     onClick = { selectedTab = 0 },
                     text = { Text("Jela") }
                 )
+
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
@@ -56,7 +63,7 @@ fun FavoritesScreen(
         }
 
         if (selectedTab == 0) {
-            if (favoriteDishes.isEmpty()) {
+            if (uiState.favoriteDishes.isEmpty()) {
                 item {
                     EmptyStateView(
                         title = "Nema omiljenih jela",
@@ -64,15 +71,16 @@ fun FavoritesScreen(
                     )
                 }
             } else {
-                items(favoriteDishes) { dish ->
+                items(uiState.favoriteDishes) { dish ->
                     DishCard(
                         dish = dish,
-                        onClick = { onOpenDish(dish.id) }
+                        onClick = { onOpenDish(dish.id) },
+                        onFavoriteClick = viewModel::toggleDishFavorite
                     )
                 }
             }
         } else {
-            if (favoriteCanteens.isEmpty()) {
+            if (uiState.favoriteCanteens.isEmpty()) {
                 item {
                     EmptyStateView(
                         title = "Nema omiljenih menzi",
@@ -80,10 +88,11 @@ fun FavoritesScreen(
                     )
                 }
             } else {
-                items(favoriteCanteens) { canteen ->
+                items(uiState.favoriteCanteens) { canteen ->
                     CanteenCard(
                         canteen = canteen,
-                        onClick = { onOpenCanteen(canteen.id) }
+                        onClick = { onOpenCanteen(canteen.id) },
+                        onFavoriteClick = viewModel::toggleCanteenFavorite
                     )
                 }
             }

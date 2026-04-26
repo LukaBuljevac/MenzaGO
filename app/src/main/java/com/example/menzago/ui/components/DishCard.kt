@@ -29,7 +29,8 @@ import com.example.menzago.data.model.Dish
 @Composable
 fun DishCard(
     dish: Dish,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFavoriteClick: (Int) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -48,7 +49,9 @@ fun DishCard(
                         text = dish.name,
                         style = MaterialTheme.typography.titleMedium
                     )
+
                     Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
                         text = dish.category,
                         style = MaterialTheme.typography.labelMedium,
@@ -56,9 +59,15 @@ fun DishCard(
                     )
                 }
 
-                IconButton(onClick = {}) {
+                IconButton(
+                    onClick = { onFavoriteClick(dish.id) }
+                ) {
                     Icon(
-                        imageVector = if (dish.isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                        imageVector = if (dish.isFavorite) {
+                            Icons.Outlined.Favorite
+                        } else {
+                            Icons.Outlined.FavoriteBorder
+                        },
                         contentDescription = "Favorite"
                     )
                 }

@@ -9,31 +9,31 @@ object MockData {
     val canteens = listOf(
         Canteen(
             id = 1,
-            name = "Studentska menza Sjever",
+            name = "Studentska menza Campus",
             location = "Kampus A",
             distanceMeters = 350,
             isOpen = true,
-            workingHours = "07:00 - 20:00",
+            workingHours = "08:00 - 20:00",
             todaysOffer = listOf("Piletina s rižom", "Juha od rajčice", "Salata"),
             isFavorite = true
         ),
         Canteen(
             id = 2,
-            name = "Studentska menza Centar",
-            location = "Glavna zgrada",
+            name = "Studentska menza Istarska",
+            location = "STUC",
             distanceMeters = 700,
             isOpen = true,
-            workingHours = "08:00 - 19:00",
+            workingHours = "08:00 - 20:00",
             todaysOffer = listOf("Pasta bolognese", "Povrtna juha", "Kruh"),
             isFavorite = false
         ),
         Canteen(
             id = 3,
-            name = "Studentska menza Jug",
-            location = "Domovi",
+            name = "Studentska menza Gaudeamus",
+            location = "STUC",
             distanceMeters = 1100,
             isOpen = false,
-            workingHours = "09:00 - 17:00",
+            workingHours = "08:00 - 20:00",
             todaysOffer = listOf("Povrtni rižoto", "Krem juha", "Voće"),
             isFavorite = false
         )

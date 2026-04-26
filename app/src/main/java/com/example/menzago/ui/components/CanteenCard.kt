@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +28,8 @@ import com.example.menzago.data.model.Canteen
 @Composable
 fun CanteenCard(
     canteen: Canteen,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFavoriteClick: (Int) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -44,7 +48,9 @@ fun CanteenCard(
                         text = canteen.name,
                         style = MaterialTheme.typography.titleMedium
                     )
+
                     Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
                         text = canteen.location,
                         style = MaterialTheme.typography.bodyMedium,
@@ -52,7 +58,22 @@ fun CanteenCard(
                     )
                 }
 
-                StatusBadge(isOpen = canteen.isOpen)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StatusBadge(isOpen = canteen.isOpen)
+
+                    IconButton(
+                        onClick = { onFavoriteClick(canteen.id) }
+                    ) {
+                        Icon(
+                            imageVector = if (canteen.isFavorite) {
+                                Icons.Outlined.Favorite
+                            } else {
+                                Icons.Outlined.FavoriteBorder
+                            },
+                            contentDescription = "Favorite"
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
