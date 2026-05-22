@@ -9,26 +9,44 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.menzago.data.mock.MockData
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.menzago.ui.components.DishCard
 import com.example.menzago.ui.components.MenzaGoTopBar
 import com.example.menzago.ui.components.SectionHeader
 import com.example.menzago.ui.components.StatusBadge
+import com.example.menzago.ui.viewmodel.DetailViewModel
 
 @Composable
 fun CanteenDetailScreen(
     canteenId: Int,
     onBack: () -> Unit,
-    onOpenDish: (Int) -> Unit
+    onOpenDish: (Int) -> Unit,
+    viewModel: DetailViewModel = viewModel()
 ) {
-    val canteen = MockData.canteens.firstOrNull { it.id == canteenId } ?: MockData.canteens.first()
-    val dishes = MockData.dishes
+    var refreshKey by remember { mutableStateOf(0) }
+
+    val canteen = remember(refreshKey, canteenId) {
+        viewModel.getCanteenById(canteenId)
+    }
+
+    val dishes = remember(refreshKey) {
+        viewModel.getAllDishes()
+    }
 
     LazyColumn(
         modifier = Modifier.padding(horizontal = 16.dp),
@@ -46,21 +64,57 @@ fun CanteenDetailScreen(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = canteen.name,
-                        style = MaterialTheme.typography.headlineSmall
-                    )
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = canteen.name,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = canteen.location,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                viewModel.toggleCanteenFavorite(canteen.id)
+                                refreshKey++
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (canteen.isFavorite) {
+                                    Icons.Outlined.Favorite
+                                } else {
+                                    Icons.Outlined.FavoriteBorder
+                                },
+                                contentDescription = "Favorite"
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = canteen.location,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+
                     StatusBadge(isOpen = canteen.isOpen)
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
                         text = "Radno vrijeme: ${canteen.workingHours}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Udaljenost: ${canteen.distanceMeters} m",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -74,7 +128,11 @@ fun CanteenDetailScreen(
         items(dishes) { dish ->
             DishCard(
                 dish = dish,
-                onClick = { onOpenDish(dish.id) }
+                onClick = { onOpenDish(dish.id) },
+                onFavoriteClick = {
+                    viewModel.toggleDishFavorite(it)
+                    refreshKey++
+                }
             )
         }
     }

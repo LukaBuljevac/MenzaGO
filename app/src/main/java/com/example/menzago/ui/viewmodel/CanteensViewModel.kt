@@ -1,11 +1,13 @@
 package com.example.menzago.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.menzago.data.model.Canteen
-import com.example.menzago.data.repository.MenzaRepository
+import com.example.menzago.data.repository.RepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class CanteensUiData(
     val canteens: List<Canteen>,
@@ -14,34 +16,33 @@ data class CanteensUiData(
 
 class CanteensViewModel : ViewModel() {
 
-    private val repository = MenzaRepository
+    private val repository = RepositoryProvider.repository
 
     private val _uiState = MutableStateFlow(
-        CanteensUiData(
-            canteens = repository.canteens.value
-        )
+        CanteensUiData(canteens = repository.getAllCanteens())
     )
 
     val uiState: StateFlow<CanteensUiData> = _uiState.asStateFlow()
 
     fun onSearchQueryChange(query: String) {
+        val filtered = repository.getAllCanteens().filter {
+            it.name.contains(query, ignoreCase = true) ||
+                    it.location.contains(query, ignoreCase = true)
+        }
+
         _uiState.value = CanteensUiData(
-            canteens = repository.searchCanteens(query),
+            canteens = filtered,
             searchQuery = query
         )
     }
 
     fun toggleCanteenFavorite(canteenId: Int) {
-        repository.toggleCanteenFavorite(canteenId)
-
-        _uiState.value = _uiState.value.copy(
-            canteens = repository.searchCanteens(_uiState.value.searchQuery)
-        )
+        viewModelScope.launch {
+            repository.toggleCanteenFavorite(canteenId)
+        }
     }
 
     fun refresh() {
-        _uiState.value = _uiState.value.copy(
-            canteens = repository.searchCanteens(_uiState.value.searchQuery)
-        )
+        onSearchQueryChange(_uiState.value.searchQuery)
     }
 }

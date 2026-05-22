@@ -1,26 +1,30 @@
 package com.example.menzago.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.menzago.data.mock.MockData
 import com.example.menzago.data.model.Canteen
 import com.example.menzago.data.model.Comment
 import com.example.menzago.data.model.Dish
-import com.example.menzago.data.repository.MenzaRepository
+import com.example.menzago.data.repository.RepositoryProvider
+import kotlinx.coroutines.launch
 
 class DetailViewModel : ViewModel() {
 
-    private val repository = MenzaRepository
+    private val repository = RepositoryProvider.repository
 
     fun getDishById(dishId: Int): Dish {
-        return repository.getDishById(dishId) ?: repository.dishes.value.first()
+        return repository.getAllDishes().firstOrNull { it.id == dishId }
+            ?: repository.getAllDishes().first()
     }
 
     fun getCanteenById(canteenId: Int): Canteen {
-        return repository.getCanteenById(canteenId) ?: repository.canteens.value.first()
+        return repository.getAllCanteens().firstOrNull { it.id == canteenId }
+            ?: repository.getAllCanteens().first()
     }
 
     fun getAllDishes(): List<Dish> {
-        return repository.dishes.value
+        return repository.getAllDishes()
     }
 
     fun getComments(): List<Comment> {
@@ -28,10 +32,14 @@ class DetailViewModel : ViewModel() {
     }
 
     fun toggleDishFavorite(dishId: Int) {
-        repository.toggleDishFavorite(dishId)
+        viewModelScope.launch {
+            repository.toggleDishFavorite(dishId)
+        }
     }
 
     fun toggleCanteenFavorite(canteenId: Int) {
-        repository.toggleCanteenFavorite(canteenId)
+        viewModelScope.launch {
+            repository.toggleCanteenFavorite(canteenId)
+        }
     }
 }

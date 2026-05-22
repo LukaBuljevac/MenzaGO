@@ -1,12 +1,14 @@
 package com.example.menzago.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.menzago.data.model.Canteen
 import com.example.menzago.data.model.Dish
-import com.example.menzago.data.repository.MenzaRepository
+import com.example.menzago.data.repository.RepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class HomeUiData(
     val nearestCanteen: Canteen?,
@@ -17,20 +19,28 @@ data class HomeUiData(
 
 class HomeViewModel : ViewModel() {
 
-    private val repository = MenzaRepository
+    private val repository = RepositoryProvider.repository
 
-    private val _uiState = MutableStateFlow(
-        HomeUiData(
-            nearestCanteen = repository.canteens.value.minByOrNull { it.distanceMeters },
-            todayDishes = repository.dishes.value.take(3),
-            previewCanteens = repository.canteens.value.take(2)
-        )
-    )
-
+    private val _uiState = MutableStateFlow(createInitialState())
     val uiState: StateFlow<HomeUiData> = _uiState.asStateFlow()
 
+    private fun createInitialState(): HomeUiData {
+        val canteens = repository.getAllCanteens()
+        val dishes = repository.getAllDishes()
+
+        return HomeUiData(
+            nearestCanteen = canteens.minByOrNull { it.distanceMeters },
+            todayDishes = dishes.take(3),
+            previewCanteens = canteens.take(2)
+        )
+    }
+
     fun onSearchQueryChange(query: String) {
-        val filteredDishes = repository.searchDishes(query)
+        val filteredDishes = repository.getAllDishes().filter {
+            it.name.contains(query, ignoreCase = true) ||
+                    it.description.contains(query, ignoreCase = true) ||
+                    it.category.contains(query, ignoreCase = true)
+        }
 
         _uiState.value = _uiState.value.copy(
             searchQuery = query,
@@ -39,22 +49,14 @@ class HomeViewModel : ViewModel() {
     }
 
     fun toggleDishFavorite(dishId: Int) {
-        repository.toggleDishFavorite(dishId)
-        refresh()
+        viewModelScope.launch {
+            repository.toggleDishFavorite(dishId)
+        }
     }
 
     fun toggleCanteenFavorite(canteenId: Int) {
-        repository.toggleCanteenFavorite(canteenId)
-        refresh()
-    }
-
-    private fun refresh() {
-        val query = _uiState.value.searchQuery
-
-        _uiState.value = _uiState.value.copy(
-            nearestCanteen = repository.canteens.value.minByOrNull { it.distanceMeters },
-            todayDishes = repository.searchDishes(query).take(3),
-            previewCanteens = repository.canteens.value.take(2)
-        )
+        viewModelScope.launch {
+            repository.toggleCanteenFavorite(canteenId)
+        }
     }
 }

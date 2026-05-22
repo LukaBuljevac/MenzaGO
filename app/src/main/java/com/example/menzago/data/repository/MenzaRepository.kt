@@ -1,72 +1,55 @@
 package com.example.menzago.data.repository
 
+import com.example.menzago.data.local.dao.FavoritesDao
+import com.example.menzago.data.local.entity.FavoriteCanteenEntity
+import com.example.menzago.data.local.entity.FavoriteDishEntity
 import com.example.menzago.data.mock.MockData
 import com.example.menzago.data.model.Canteen
 import com.example.menzago.data.model.Dish
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
-object MenzaRepository {
+class MenzaRepository(
+    private val dao: FavoritesDao
+) {
 
-    private val _dishes = MutableStateFlow(MockData.dishes)
-    val dishes: StateFlow<List<Dish>> = _dishes.asStateFlow()
-
-    private val _canteens = MutableStateFlow(MockData.canteens)
-    val canteens: StateFlow<List<Canteen>> = _canteens.asStateFlow()
-
-    fun getDishById(id: Int): Dish? {
-        return _dishes.value.firstOrNull { it.id == id }
+    fun getAllDishes(): List<Dish> {
+        return MockData.dishes
     }
 
-    fun getCanteenById(id: Int): Canteen? {
-        return _canteens.value.firstOrNull { it.id == id }
+    fun getAllCanteens(): List<Canteen> {
+        return MockData.canteens
     }
 
-    fun getFavoriteDishes(): List<Dish> {
-        return _dishes.value.filter { it.isFavorite }
+    fun favoriteDishIds(): Flow<List<FavoriteDishEntity>> {
+        return dao.getFavoriteDishes()
     }
 
-    fun getFavoriteCanteens(): List<Canteen> {
-        return _canteens.value.filter { it.isFavorite }
+    fun favoriteCanteenIds(): Flow<List<FavoriteCanteenEntity>> {
+        return dao.getFavoriteCanteens()
     }
 
-    fun toggleDishFavorite(dishId: Int) {
-        _dishes.value = _dishes.value.map { dish ->
-            if (dish.id == dishId) {
-                dish.copy(isFavorite = !dish.isFavorite)
-            } else {
-                dish
-            }
+    suspend fun toggleDishFavorite(dishId: Int) {
+        val favorites = dao.getFavoriteDishes().first()
+
+        val exists = favorites.any { it.dishId == dishId }
+
+        if (exists) {
+            dao.deleteFavoriteDish(dishId)
+        } else {
+            dao.insertFavoriteDish(FavoriteDishEntity(dishId))
         }
     }
 
-    fun toggleCanteenFavorite(canteenId: Int) {
-        _canteens.value = _canteens.value.map { canteen ->
-            if (canteen.id == canteenId) {
-                canteen.copy(isFavorite = !canteen.isFavorite)
-            } else {
-                canteen
-            }
-        }
-    }
+    suspend fun toggleCanteenFavorite(canteenId: Int) {
+        val favorites = dao.getFavoriteCanteens().first()
 
-    fun searchDishes(query: String): List<Dish> {
-        if (query.isBlank()) return _dishes.value
+        val exists = favorites.any { it.canteenId == canteenId }
 
-        return _dishes.value.filter { dish ->
-            dish.name.contains(query, ignoreCase = true) ||
-                    dish.description.contains(query, ignoreCase = true) ||
-                    dish.category.contains(query, ignoreCase = true)
-        }
-    }
-
-    fun searchCanteens(query: String): List<Canteen> {
-        if (query.isBlank()) return _canteens.value
-
-        return _canteens.value.filter { canteen ->
-            canteen.name.contains(query, ignoreCase = true) ||
-                    canteen.location.contains(query, ignoreCase = true)
+        if (exists) {
+            dao.deleteFavoriteCanteen(canteenId)
+        } else {
+            dao.insertFavoriteCanteen(FavoriteCanteenEntity(canteenId))
         }
     }
 }
