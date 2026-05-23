@@ -30,24 +30,21 @@ class FavoritesViewModel : ViewModel() {
     private fun observeFavorites() {
         viewModelScope.launch {
             combine(
-                repository.favoriteDishIds(),
-                repository.favoriteCanteenIds()
-            ) { dishEntities, canteenEntities ->
-                val favoriteDishIds = dishEntities.map { it.dishId }.toSet()
-                val favoriteCanteenIds = canteenEntities.map { it.canteenId }.toSet()
-
+                repository.observeDishes(),
+                repository.observeCanteens()
+            ) { dishes, canteens ->
                 FavoritesUiData(
-                    favoriteDishes = repository.getAllDishes().filter { it.id in favoriteDishIds },
-                    favoriteCanteens = repository.getAllCanteens().filter { it.id in favoriteCanteenIds }
+                    favoriteDishes = dishes.filter { it.isFavorite },
+                    favoriteCanteens = canteens.filter { it.isFavorite }
                 )
-            }.collect { data ->
-                _uiState.value = data
+            }.collect {
+                _uiState.value = it
             }
         }
     }
 
     fun refreshFavorites() {
-        // Room Flow automatski osvježava favorite.
+        // Room Flow automatski osvježava podatke.
     }
 
     fun toggleDishFavorite(dishId: Int) {

@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class CanteensUiData(
-    val canteens: List<Canteen>,
+    val canteens: List<Canteen> = emptyList(),
     val searchQuery: String = ""
 )
 
@@ -18,21 +18,29 @@ class CanteensViewModel : ViewModel() {
 
     private val repository = RepositoryProvider.repository
 
-    private val _uiState = MutableStateFlow(
-        CanteensUiData(canteens = repository.getAllCanteens())
-    )
-
+    private val _uiState = MutableStateFlow(CanteensUiData())
     val uiState: StateFlow<CanteensUiData> = _uiState.asStateFlow()
 
-    fun onSearchQueryChange(query: String) {
-        val filtered = repository.getAllCanteens().filter {
-            it.name.contains(query, ignoreCase = true) ||
-                    it.location.contains(query, ignoreCase = true)
-        }
+    init {
+        observeCanteens()
+    }
 
-        _uiState.value = CanteensUiData(
-            canteens = filtered,
-            searchQuery = query
+    private fun observeCanteens() {
+        viewModelScope.launch {
+            repository.observeCanteens().collect { canteens ->
+                val query = _uiState.value.searchQuery
+
+                _uiState.value = _uiState.value.copy(
+                    canteens = filterCanteens(canteens, query)
+                )
+            }
+        }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.value = _uiState.value.copy(
+            searchQuery = query,
+            canteens = filterCanteens(repository.getAllCanteens(), query)
         )
     }
 
@@ -44,5 +52,17 @@ class CanteensViewModel : ViewModel() {
 
     fun refresh() {
         onSearchQueryChange(_uiState.value.searchQuery)
+    }
+
+    private fun filterCanteens(
+        canteens: List<Canteen>,
+        query: String
+    ): List<Canteen> {
+        if (query.isBlank()) return canteens
+
+        return canteens.filter {
+            it.name.contains(query, ignoreCase = true) ||
+                    it.location.contains(query, ignoreCase = true)
+        }
     }
 }
