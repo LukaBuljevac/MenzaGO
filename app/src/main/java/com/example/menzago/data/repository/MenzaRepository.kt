@@ -91,6 +91,34 @@ class MenzaRepository(
             ?: getAllCanteens().first()
     }
 
+    suspend fun removeDishFromDailyMenu(
+        canteenId: Int,
+        dishId: Int
+    ) {
+        val today = LocalDate.now().toString()
+
+        val currentMenu = menuAdminRepository.getDailyMenu(
+            canteenId = canteenId,
+            date = today
+        )
+
+        if (currentMenu == null) {
+            throw IllegalStateException("Dnevni meni za ovu menzu ne postoji.")
+        }
+
+        if (dishId !in currentMenu.dishIds) {
+            throw IllegalStateException("To jelo nije na današnjem meniju.")
+        }
+
+        val updatedDishIds = currentMenu.dishIds.filter { it != dishId }
+
+        menuAdminRepository.saveDailyMenu(
+            currentMenu.copy(
+                dishIds = updatedDishIds
+            )
+        )
+    }
+
     suspend fun toggleDishFavorite(dishId: Int) {
         val favorites = dao.getFavoriteDishes().first()
         val exists = favorites.any { it.dishId == dishId }

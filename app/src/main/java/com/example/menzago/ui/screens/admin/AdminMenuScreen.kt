@@ -49,6 +49,7 @@ fun AdminMenuScreen(
 
     var canteenId by remember { mutableStateOf("1") }
     var dishIds by remember { mutableStateOf("") }
+    var removeDishId by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let { message ->
@@ -219,6 +220,30 @@ fun AdminMenuScreen(
                             enabled = !uiState.isLoading
                         ) {
                             Text("Spremi dnevni meni")
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = removeDishId,
+                            onValueChange = { removeDishId = it },
+                            label = { Text("ID jela za ukloniti s menija") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Button(
+                            onClick = {
+                                viewModel.removeDishFromDailyMenu(
+                                    canteenId = canteenId.toIntOrNull(),
+                                    dishId = removeDishId.toIntOrNull()
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading
+                        ) {
+                            Text("Ukloni jelo s dnevnog menija")
                         }
                     }
                 }

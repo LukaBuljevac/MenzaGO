@@ -98,6 +98,40 @@ class AdminMenuViewModel : ViewModel() {
         }
     }
 
+    fun removeDishFromDailyMenu(
+        canteenId: Int?,
+        dishId: Int?
+    ) {
+        if (canteenId == null || canteenId <= 0) {
+            _uiState.value = AdminMenuUiState(message = "Unesi ispravan ID menze.")
+            return
+        }
+
+        if (dishId == null || dishId <= 0) {
+            _uiState.value = AdminMenuUiState(message = "Unesi ispravan ID jela za uklanjanje.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = AdminMenuUiState(isLoading = true)
+
+            try {
+                repository.removeDishFromDailyMenu(
+                    canteenId = canteenId,
+                    dishId = dishId
+                )
+
+                _uiState.value = AdminMenuUiState(
+                    message = "Jelo je uklonjeno s današnjeg menija."
+                )
+            } catch (e: Exception) {
+                _uiState.value = AdminMenuUiState(
+                    message = e.message ?: "Greška kod uklanjanja jela s menija."
+                )
+            }
+        }
+    }
+
     fun saveDailyMenu(
         canteenId: Int?,
         dishIds: List<Int>
