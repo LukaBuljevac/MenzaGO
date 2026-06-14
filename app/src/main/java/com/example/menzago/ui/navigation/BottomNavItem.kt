@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.outlined.Map
 
 data class BottomNavItem(
     val label: String,
@@ -33,5 +34,10 @@ val bottomNavItems = listOf(
         label = "Profil",
         icon = Icons.Outlined.Person,
         route = AppDestination.Profile.route
+    ),
+    BottomNavItem(
+        label = "Mapa",
+        icon = Icons.Outlined.Map,
+        route = AppDestination.Map.route
     )
 )

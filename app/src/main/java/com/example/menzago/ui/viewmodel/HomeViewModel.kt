@@ -30,6 +30,13 @@ class HomeViewModel : ViewModel() {
     init {
         observeHomeData()
         refreshMenu()
+        loadFirestoreDishes()
+    }
+
+    private fun loadFirestoreDishes() {
+        viewModelScope.launch {
+            repository.loadDishesFromFirestore()
+        }
     }
 
     private fun observeHomeData() {

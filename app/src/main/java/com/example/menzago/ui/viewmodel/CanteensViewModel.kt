@@ -18,6 +18,8 @@ class CanteensViewModel : ViewModel() {
 
     private val repository = RepositoryProvider.repository
 
+    private var latestCanteens: List<Canteen> = emptyList()
+
     private val _uiState = MutableStateFlow(CanteensUiData())
     val uiState: StateFlow<CanteensUiData> = _uiState.asStateFlow()
 
@@ -28,10 +30,13 @@ class CanteensViewModel : ViewModel() {
     private fun observeCanteens() {
         viewModelScope.launch {
             repository.observeCanteens().collect { canteens ->
-                val query = _uiState.value.searchQuery
+                latestCanteens = canteens
 
                 _uiState.value = _uiState.value.copy(
-                    canteens = filterCanteens(canteens, query)
+                    canteens = filterCanteens(
+                        canteens = latestCanteens,
+                        query = _uiState.value.searchQuery
+                    )
                 )
             }
         }
@@ -40,7 +45,10 @@ class CanteensViewModel : ViewModel() {
     fun onSearchQueryChange(query: String) {
         _uiState.value = _uiState.value.copy(
             searchQuery = query,
-            canteens = filterCanteens(repository.getAllCanteens(), query)
+            canteens = filterCanteens(
+                canteens = latestCanteens,
+                query = query
+            )
         )
     }
 

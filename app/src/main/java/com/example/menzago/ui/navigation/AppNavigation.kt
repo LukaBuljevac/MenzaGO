@@ -23,6 +23,8 @@ import com.example.menzago.ui.screens.favorites.FavoritesScreen
 import com.example.menzago.ui.screens.home.HomeScreen
 import com.example.menzago.ui.screens.profile.ProfileScreen
 import com.example.menzago.ui.viewmodel.AuthViewModel
+import com.example.menzago.ui.screens.map.MapScreen
+import com.example.menzago.ui.screens.admin.AdminMenuScreen
 
 @Composable
 fun AppNavigation() {
@@ -42,7 +44,8 @@ fun AppNavigation() {
         AppDestination.Home.route,
         AppDestination.Canteens.route,
         AppDestination.Favorites.route,
-        AppDestination.Profile.route
+        AppDestination.Profile.route,
+        AppDestination.Map.route
     )
 
     Scaffold(
@@ -126,6 +129,9 @@ fun AppNavigation() {
             composable(AppDestination.Profile.route) {
                 ProfileScreen(
                     authViewModel = authViewModel,
+                    onOpenAdmin = {
+                        navController.navigate(AppDestination.AdminMenu.route)
+                    },
                     onLogout = {
                         navController.navigate(AppDestination.Login.route) {
                             popUpTo(AppDestination.Home.route) {
@@ -169,6 +175,22 @@ fun AppNavigation() {
 
                 DishDetailScreen(
                     dishId = dishId,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(AppDestination.Map.route) {
+                MapScreen(
+                    onOpenCanteen = { canteenId ->
+                        navController.navigate(AppDestination.CanteenDetail.createRoute(canteenId))
+                    }
+                )
+            }
+
+            composable(AppDestination.AdminMenu.route) {
+                AdminMenuScreen(
                     onBack = {
                         navController.popBackStack()
                     }

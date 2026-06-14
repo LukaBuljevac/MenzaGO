@@ -8,6 +8,8 @@ sealed class AppDestination(val route: String) {
     data object Canteens : AppDestination("canteens")
     data object Favorites : AppDestination("favorites")
     data object Profile : AppDestination("profile")
+    data object Map : AppDestination("map")
+    data object AdminMenu : AppDestination("admin_menu")
 
 
     data object CanteenDetail : AppDestination("canteen_detail/{canteenId}") {

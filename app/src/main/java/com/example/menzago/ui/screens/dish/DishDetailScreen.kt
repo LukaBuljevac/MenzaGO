@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.Favorite
@@ -22,34 +24,67 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.menzago.data.model.Review
 import com.example.menzago.ui.components.AllergenChip
 import com.example.menzago.ui.components.MenzaGoTopBar
+import com.example.menzago.ui.viewmodel.AuthViewModel
 import com.example.menzago.ui.viewmodel.DetailViewModel
+import com.example.menzago.ui.viewmodel.ReviewViewModel
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import com.example.menzago.R
+import androidx.compose.material3.OutlinedButton
 
 @Composable
 fun DishDetailScreen(
     dishId: Int,
     onBack: () -> Unit,
-    viewModel: DetailViewModel = viewModel()
+    viewModel: DetailViewModel = viewModel(),
+    reviewViewModel: ReviewViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    var refreshKey by remember { mutableStateOf(0) }
+    var refreshKey by remember { mutableIntStateOf(0) }
 
     val dish = remember(refreshKey, dishId) {
         viewModel.getDishById(dishId)
     }
 
-    val comments = remember {
-        viewModel.getComments()
+    val reviewState by reviewViewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+
+    val imageRes = remember(dish.imageName) {
+        context.resources.getIdentifier(
+            dish.imageName,
+            "drawable",
+            context.packageName
+        )
+    }
+
+    var comment by remember { mutableStateOf("") }
+    var rating by remember { mutableFloatStateOf(5f) }
+
+    LaunchedEffect(dishId) {
+        reviewViewModel.loadReviews(dishId)
     }
 
     LazyColumn(
@@ -71,23 +106,20 @@ fun DishDetailScreen(
                     .fillMaxWidth()
                     .height(220.dp)
             ) {
-                Column(
+                Image(
+                    painter = painterResource(
+                        id = if (imageRes != 0) {
+                            imageRes
+                        } else {
+                            R.drawable.food_placeholder
+                        }
+                    ),
+                    contentDescription = dish.name,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Fastfood,
-                        contentDescription = null
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text("Slika jela")
-                }
+                        .height(220.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
 
@@ -124,16 +156,14 @@ fun DishDetailScreen(
                         } else {
                             Icons.Outlined.FavoriteBorder
                         },
-                        contentDescription = "Favorite"
+                        contentDescription = null
                     )
                 }
             }
         }
 
         item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.Star,
                     contentDescription = null
@@ -141,7 +171,16 @@ fun DishDetailScreen(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                Text("${dish.rating}")
+                Text(
+                    text = if (reviewState.reviewCount > 0) {
+                        "%.1f (%d recenzija)".format(
+                            reviewState.averageRating,
+                            reviewState.reviewCount
+                        )
+                    } else {
+                        "${dish.rating}"
+                    }
+                )
 
                 Spacer(modifier = Modifier.width(16.dp))
 
@@ -208,27 +247,122 @@ fun DishDetailScreen(
         }
 
         item {
+            Text(
+                text = "Komentari i ocjene",
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = comment,
+                        onValueChange = { comment = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Dodaj komentar") },
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Ocjena: ${rating.toInt()}/5")
+
+                    Slider(
+                        value = rating,
+                        onValueChange = { rating = it },
+                        valueRange = 1f..5f,
+                        steps = 3
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            if (comment.isNotBlank()) {
+                                reviewViewModel.addReview(
+                                    Review(
+                                        dishId = dishId,
+                                        userEmail = authViewModel.getCurrentEmail(),
+                                        comment = comment,
+                                        rating = rating.toInt()
+                                    )
+                                )
+
+                                comment = ""
+                                rating = 5f
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Objavi komentar")
+                    }
+                }
+            }
+        }
+
+        if (reviewState.isLoading) {
+            item {
+                Text(
+                    text = "Učitavam komentare...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        reviewState.errorMessage?.let { message ->
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+
+        if (!reviewState.isLoading && reviewState.reviews.isEmpty()) {
+            item {
+                Text(
+                    text = "Još nema komentara. Budi prvi koji će ocijeniti ovo jelo.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        items(reviewState.reviews) { review ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Komentari",
-                        style = MaterialTheme.typography.titleMedium
+                        text = review.userEmail,
+                        style = MaterialTheme.typography.titleSmall
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    comments.forEach { comment ->
-                        Text(
-                            text = "${comment.userName} (${comment.rating}/5)",
-                            style = MaterialTheme.typography.titleSmall
-                        )
+                    Text(text = review.comment)
 
-                        Text(
-                            text = comment.text,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = "⭐ ${review.rating}/5")
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            reviewViewModel.deleteReview(
+                                reviewId = review.id,
+                                dishId = dishId
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Obriši komentar")
                     }
                 }
             }

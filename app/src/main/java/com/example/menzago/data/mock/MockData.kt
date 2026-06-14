@@ -14,7 +14,8 @@ object MockData {
             distanceMeters = 350,
             isOpen = true,
             workingHours = "08:00 - 20:00",
-            todaysOffer = listOf("Piletina s rižom", "Juha od rajčice", "Salata"),
+            latitude = 45.55664573198663,
+            longitude = 18.707788611664668,
             isFavorite = true
         ),
         Canteen(
@@ -24,7 +25,8 @@ object MockData {
             distanceMeters = 700,
             isOpen = true,
             workingHours = "08:00 - 20:00",
-            todaysOffer = listOf("Pasta bolognese", "Povrtna juha", "Kruh"),
+            latitude = 45.55621205614703,
+            longitude = 18.69397807672979,
             isFavorite = false
         ),
         Canteen(
@@ -32,9 +34,10 @@ object MockData {
             name = "Studentska menza Gaudeamus",
             location = "STUC",
             distanceMeters = 1100,
-            isOpen = false,
+            isOpen = true,
             workingHours = "08:00 - 20:00",
-            todaysOffer = listOf("Povrtni rižoto", "Krem juha", "Voće"),
+            latitude = 45.55597511299069,
+            longitude = 18.6941793998167,
             isFavorite = false
         )
     )

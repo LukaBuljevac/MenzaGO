@@ -99,11 +99,6 @@ fun CanteenCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Danas: ${canteen.todaysOffer.joinToString()}",
-                style = MaterialTheme.typography.bodyMedium
-            )
         }
     }
 }

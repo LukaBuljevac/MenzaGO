@@ -1,42 +1,61 @@
 package com.example.menzago.data.repository
 
+import android.location.Location
 import com.example.menzago.data.local.dao.FavoritesDao
 import com.example.menzago.data.local.entity.FavoriteCanteenEntity
 import com.example.menzago.data.local.entity.FavoriteDishEntity
+import com.example.menzago.data.location.DistanceUtils
+import com.example.menzago.data.location.UserLocationRepository
 import com.example.menzago.data.mock.MockData
 import com.example.menzago.data.model.Canteen
+import com.example.menzago.data.model.DailyMenu
 import com.example.menzago.data.model.Dish
 import com.example.menzago.data.remote.RemoteMenuService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import java.time.LocalDate
+import com.example.menzago.data.utils.CanteenStatusUtils
 
 class MenzaRepository(
     private val dao: FavoritesDao
 ) {
     private val remoteService = RemoteMenuService()
+    private val menuAdminRepository = MenuAdminRepository()
+    private val firestoreDishes = MutableStateFlow(MockData.dishes)
 
-    fun getAllDishes(): List<Dish> = MockData.dishes
+    fun getAllDishes(): List<Dish> = firestoreDishes.value
 
-    fun getAllCanteens(): List<Canteen> = MockData.canteens
+    fun getAllCanteens(): List<Canteen> {
+        return applyUserDistances(MockData.canteens, UserLocationRepository.location.value)
+    }
 
     fun observeDishes(): Flow<List<Dish>> {
-        return dao.getFavoriteDishes().map { favoriteEntities ->
+        return combine(
+            dao.getFavoriteDishes(),
+            firestoreDishes
+        ) { favoriteEntities, dishes ->
             val favoriteIds = favoriteEntities.map { it.dishId }.toSet()
 
-            MockData.dishes.map { dish ->
+            dishes.map { dish ->
                 dish.copy(isFavorite = dish.id in favoriteIds)
             }
         }
     }
 
     fun observeCanteens(): Flow<List<Canteen>> {
-        return dao.getFavoriteCanteens().map { favoriteEntities ->
+        return combine(
+            dao.getFavoriteCanteens(),
+            UserLocationRepository.location
+        ) { favoriteEntities, userLocation ->
             val favoriteIds = favoriteEntities.map { it.canteenId }.toSet()
 
-            MockData.canteens.map { canteen ->
-                canteen.copy(isFavorite = canteen.id in favoriteIds)
-            }
+            applyUserDistances(MockData.canteens, userLocation)
+                .map { canteen ->
+                    canteen.copy(isFavorite = canteen.id in favoriteIds)
+                }
+                .sortedBy { it.distanceMeters }
         }
     }
 
@@ -54,9 +73,10 @@ class MenzaRepository(
             .map { it.dishId }
             .toSet()
 
-        return MockData.dishes.firstOrNull { it.id == dishId }
+        return firestoreDishes.value
+            .firstOrNull { it.id == dishId }
             ?.copy(isFavorite = dishId in favoriteIds)
-            ?: MockData.dishes.first()
+            ?: firestoreDishes.value.first()
     }
 
     suspend fun getCanteenById(canteenId: Int): Canteen {
@@ -65,9 +85,10 @@ class MenzaRepository(
             .map { it.canteenId }
             .toSet()
 
-        return MockData.canteens.firstOrNull { it.id == canteenId }
+        return getAllCanteens()
+            .firstOrNull { it.id == canteenId }
             ?.copy(isFavorite = canteenId in favoriteIds)
-            ?: MockData.canteens.first()
+            ?: getAllCanteens().first()
     }
 
     suspend fun toggleDishFavorite(dishId: Int) {
@@ -98,5 +119,81 @@ class MenzaRepository(
 
     suspend fun refreshCanteensFromRemote(): List<Canteen> {
         return remoteService.fetchCanteens()
+    }
+
+    suspend fun loadDishesFromFirestore() {
+        val dishes = menuAdminRepository.getDishes()
+
+        firestoreDishes.value = if (dishes.isNotEmpty()) {
+            dishes
+        } else {
+            MockData.dishes
+        }
+    }
+
+    suspend fun addDishToFirestore(dish: Dish) {
+        menuAdminRepository.addOrUpdateDish(dish)
+        loadDishesFromFirestore()
+    }
+
+    suspend fun deleteDishFromFirestore(dishId: Int) {
+        menuAdminRepository.deleteDish(dishId)
+        loadDishesFromFirestore()
+    }
+
+    suspend fun saveDailyMenu(
+        canteenId: Int,
+        dishIds: List<Int>
+    ) {
+        val today = LocalDate.now().toString()
+
+        menuAdminRepository.saveDailyMenu(
+            DailyMenu(
+                canteenId = canteenId,
+                date = today,
+                dishIds = dishIds
+            )
+        )
+    }
+
+    suspend fun getTodaysDishesForCanteen(canteenId: Int): List<Dish> {
+        loadDishesFromFirestore()
+
+        val today = LocalDate.now().toString()
+
+        val menu = menuAdminRepository.getDailyMenu(
+            canteenId = canteenId,
+            date = today
+        )
+
+        if (menu == null || menu.dishIds.isEmpty()) {
+            return firestoreDishes.value
+        }
+
+        return firestoreDishes.value.filter { dish ->
+            dish.id in menu.dishIds
+        }
+    }
+
+    private fun applyUserDistances(
+        canteens: List<Canteen>,
+        userLocation: Location?
+    ): List<Canteen> {
+        return canteens.map { canteen ->
+
+            val realDistance = if (userLocation != null) {
+                DistanceUtils.distanceToCanteenMeters(
+                    userLocation = userLocation,
+                    canteen = canteen
+                ).toInt()
+            } else {
+                canteen.distanceMeters
+            }
+
+            canteen.copy(
+                distanceMeters = realDistance,
+                isOpen = CanteenStatusUtils.isOpenNow(canteen.workingHours)
+            )
+        }
     }
 }

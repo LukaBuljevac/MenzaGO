@@ -7,6 +7,7 @@ data class Canteen(
     val distanceMeters: Int,
     val isOpen: Boolean,
     val workingHours: String,
-    val todaysOffer: List<String>,
+    val latitude: Double,
+    val longitude: Double,
     val isFavorite: Boolean = false
 )

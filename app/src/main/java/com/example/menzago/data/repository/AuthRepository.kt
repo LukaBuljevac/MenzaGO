@@ -2,6 +2,7 @@ package com.example.menzago.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.tasks.await
 
 class AuthRepository {
@@ -25,11 +26,23 @@ class AuthRepository {
         }
     }
 
-    suspend fun register(email: String, password: String): Result<FirebaseUser> {
+    suspend fun register(
+        name: String,
+        email: String,
+        password: String
+    ): Result<FirebaseUser> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val user = result.user ?: return Result.failure(Exception("Registracija nije uspjela."))
-            Result.success(user)
+
+            val profileUpdates = UserProfileChangeRequest.Builder()
+                .setDisplayName(name)
+                .build()
+
+            user.updateProfile(profileUpdates).await()
+            user.reload().await()
+
+            Result.success(auth.currentUser ?: user)
         } catch (e: Exception) {
             Result.failure(e)
         }
