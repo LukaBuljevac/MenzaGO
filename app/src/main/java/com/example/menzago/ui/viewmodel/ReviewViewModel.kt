@@ -63,7 +63,7 @@ class ReviewViewModel : ViewModel() {
                 loadReviews(review.dishId)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = "Komentar nije spremljen. Pokušaj ponovno."
+                    errorMessage = e.message ?: "Komentar nije spremljen. Pokušaj ponovno."
                 )
             }
         }

@@ -9,6 +9,16 @@ class ReviewRepository {
     private val firestore = FirebaseFirestore.getInstance()
 
     suspend fun addReview(review: Review) {
+        val existingReview = firestore.collection("reviews")
+            .whereEqualTo("dishId", review.dishId)
+            .whereEqualTo("userEmail", review.userEmail)
+            .get()
+            .await()
+
+        if (!existingReview.isEmpty) {
+            throw IllegalStateException("Već si objavio recenziju za ovo jelo.")
+        }
+
         firestore.collection("reviews")
             .add(review)
             .await()
