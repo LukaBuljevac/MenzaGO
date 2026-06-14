@@ -10,7 +10,7 @@ object MockData {
         Canteen(
             id = 1,
             name = "Studentska menza Campus",
-            location = "Kampus A",
+            location = "Kampus",
             distanceMeters = 350,
             isOpen = true,
             workingHours = "08:00 - 20:00",
